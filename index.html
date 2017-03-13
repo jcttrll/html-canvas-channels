@@ -1,0 +1,150 @@
+<!doctype html>
+<html>
+  <head>
+    <title>HTML Canvas Channels</title>
+    <style>
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <div id="sliders"></div>
+    <script>
+    
+      function process() {
+        var adjustedPixels
+        var originalPixels
+        
+        var workingCanvas = document.createElement("canvas")
+        workingCanvas.width = maskImg.width
+        workingCanvas.height = maskImg.height
+
+        if (workingCanvas.getContext) {
+          var ctx = workingCanvas.getContext('2d')
+          ctx.drawImage(maskImg, 0, 0)
+          var maskImageData = ctx.getImageData(0, 0, maskImg.width, maskImg.height)
+
+          var maskPixels = maskImageData.data
+          var mask = new Uint8ClampedArray(maskPixels.length / 4)
+          var channels = new Array(256)
+          
+          for (var i = 0, j = 0; i < maskPixels.length; i += 4, j++) {
+            var datum = maskPixels[i]
+            channels[datum] = true
+            mask[j] = datum
+          }
+
+          var canvas = document.getElementById("canvas")
+          canvas.width = dataImg.width
+          canvas.height = dataImg.height
+
+          ctx = canvas.getContext("2d")
+          ctx.drawImage(dataImg, 0, 0)
+          var originalImageData = ctx.getImageData(0, 0, dataImg.width, dataImg.height)
+          originalPixels = originalImageData.data
+          
+          adjustedPixels = new Uint8ClampedArray(originalPixels)
+
+          console.log("mapped")
+          
+          channels = channels.map(function (available, index) {
+            return available ? index : 10
+          }).filter(function (channelId) {
+            return channelId >= 0
+          })
+          
+          console.log("channels: " + channels)
+
+          var sliderContainer = document.getElementById("sliders")
+          
+          channels.forEach(function (channel) {
+            var slider = document.createElement("div")
+            slider.style.position = "relative"
+            slider.style.height = "30px"
+            
+            var caption = document.createElement("div")
+            caption.style.position = "absolute"
+            caption.style.paddingTop = "3px"
+            caption.innerHTML = "Channel " + channel
+          
+            var sliderControl = document.createElement("div")
+            sliderControl.style.position = "absolute"
+            sliderControl.style.width = "200px"
+            sliderControl.style.height = "20px"
+            sliderControl.style.border = "1px solid black"
+            sliderControl.style.marginBottom = "10px"
+            sliderControl.style.left = "100px"
+            
+            var indicator = document.createElement("div")
+            indicator.style.position = "absolute"
+            indicator.style.left = "101px"
+            indicator.style.top = "1px"
+            indicator.style.width = "99px"
+            indicator.style.height = "20px"
+            indicator.style.backgroundColor = "#aaf"
+            
+            sliderControl.addEventListener("click", function (event) {
+              var controlWidth = event.target.clientWidth
+              var clickLeft = event.offsetX
+              
+              if (clickLeft < 0) clickLeft = 0
+              
+              console.log(event)
+              
+              var multiplier = clickLeft * 2 / controlWidth
+              var indicatorWidth = Math.round(controlWidth * multiplier / 2)
+              
+              indicator.style.width = indicatorWidth + "px"
+              
+              for (var i = 0; i < mask.length; i++) {
+                if (mask[i] == channel) {
+                  var pixelIndex = i * 4
+                  adjustedPixels[pixelIndex] = originalPixels[pixelIndex] * multiplier
+                  adjustedPixels[pixelIndex + 1] = originalPixels[pixelIndex + 1] * multiplier
+                  adjustedPixels[pixelIndex + 2] = originalPixels[pixelIndex + 2] * multiplier
+                }
+              }
+              
+              ctx.putImageData(new ImageData(adjustedPixels, canvas.width, canvas.height), 0, 0)
+              
+              console.log("set channel " + channel + " to multiplier " + multiplier)
+            })
+            
+            slider.appendChild(caption)
+            slider.appendChild(indicator)
+            slider.appendChild(sliderControl)
+            
+            sliderContainer.appendChild(slider)
+          })
+        }
+      }
+
+      var dataLoaded = false
+      var maskLoaded = false
+      
+      var maskImg = new Image()
+      maskImg.addEventListener("load", function (event) {
+        console.log("mask loaded, " + maskImg.width + "x" + maskImg.height)
+        maskLoaded = true
+        
+        if (dataLoaded) {
+          process()
+        }
+      }, false)
+
+      maskImg.src = "mask.png"
+      
+      var dataImg = new Image()
+      maskImg.addEventListener("load", function (event) {
+        console.log("data loaded, " + dataImg.width + "x" + dataImg.height)
+        dataLoaded = true
+        
+        if (maskLoaded) {
+          process()
+        }
+      }, false)
+
+      dataImg.src = "data.png"
+      
+    </script>
+  </body>
+</html>
