@@ -9,7 +9,6 @@
     <canvas id="canvas"></canvas>
     <div id="sliders"></div>
     <script>
-    
       function process() {
         var adjustedPixels
         var originalPixels
@@ -134,7 +133,7 @@
       maskImg.src = "mask.png"
       
       var dataImg = new Image()
-      maskImg.addEventListener("load", function (event) {
+      dataImg.addEventListener("load", function (event) {
         console.log("data loaded, " + dataImg.width + "x" + dataImg.height)
         dataLoaded = true
         
